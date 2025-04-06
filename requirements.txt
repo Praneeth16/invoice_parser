@@ -4,6 +4,7 @@ azure-ai-documentintelligence
 llama-index-core
 llama-parse
 llama-index-readers-file
+llama-cloud-services
 llama-extract
 python-dotenv
 streamlit-pdf-viewer
