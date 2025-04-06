@@ -53,5 +53,4 @@ This application uses a modular architecture:
 
 - Azure Document Intelligence provides structured data extraction using a pre-built invoice model
 - LlamaParse uses LlamaIndex Cloud's document parsing and structured output extraction
-- The app supports PDF, PNG, JPG, and JPEG formats
-- Images are displayed when uploaded in image formats 
+- The app supports PDF
