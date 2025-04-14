@@ -3,5 +3,4 @@ pydantic
 azure-ai-documentintelligence
 python-dotenv
 streamlit-pdf-viewer
-llama-extract
 llama-cloud-services
