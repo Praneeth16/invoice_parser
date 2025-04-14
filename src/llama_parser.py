@@ -1,6 +1,6 @@
 import os
 import tempfile
-from llama_extract import LlamaExtract
+from llama_cloud_services import LlamaExtract
 from dotenv import load_dotenv
 from .models import InvoiceData
 
