@@ -1,8 +1,6 @@
 streamlit
 pydantic
 azure-ai-documentintelligence
-llama-parse
-llama-extract
 python-dotenv
 streamlit-pdf-viewer
-llama-cloud
+llama-extract
