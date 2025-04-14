@@ -5,3 +5,4 @@ llama-parse
 llama-extract
 python-dotenv
 streamlit-pdf-viewer
+llama-cloud
