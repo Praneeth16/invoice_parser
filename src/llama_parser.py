@@ -1,6 +1,8 @@
 import os
 import tempfile
-from llama_cloud_services import LlamaExtract
+from llama_cloud import ExtractConfig
+from llama_cloud_services import LlamaExtract, LlamaParse
+from llama_index.core import SimpleDirectoryReader
 from dotenv import load_dotenv
 from .models import InvoiceData
 
@@ -9,6 +11,7 @@ class LlamaInvoiceParser:
         load_dotenv()
         self.api_key = os.getenv("LLAMA_CLOUD_API_KEY")
         self.extractor = LlamaExtract(api_key=self.api_key)
+        self.parser = LlamaParse(api_key=self.api_key, result_type="markdown")
 
     def parse_invoice(self, file_content):
         """
@@ -24,7 +27,11 @@ class LlamaInvoiceParser:
                 try:
                     agent = self.extractor.get_agent(name='invoice-agent')
                 except:
-                    agent = self.extractor.create_agent(name='invoice-agent', data_schema=InvoiceData)
+                    agent = self.extractor.create_agent(name='invoice-agent', 
+                    data_schema=InvoiceData, 
+                    config=ExtractConfig(
+                        extraction_mode='BALANCED',
+                    ))
 
                 #extract data from the document
                 extracted_data = agent.extract(
@@ -45,7 +52,8 @@ class LlamaInvoiceParser:
                             "Description": item.get('description', ''),
                             "Quantity": item.get('quantity', ''),
                             "Unit Price": item.get('unit_price', ''),
-                            "Amount": item.get('amount', '')
+                            "Amount": item.get('amount', ''),
+                            "Discount": item.get('discount', '')
                         }
                         for item in extracted_data.get('items', [])
                     ]
@@ -58,4 +66,23 @@ class LlamaInvoiceParser:
                 os.unlink(temp_file_path)
                 
         except Exception as e:
-            raise Exception(f"Error processing with LlamaParse: {str(e)}") 
+            raise Exception(f"Error processing with LlamaParse: {str(e)}")
+
+    def pdf_to_markdown(self, file_content):
+        """
+        Convert PDF to Markdown using LlamaParse
+        """
+        try:
+            # Save the uploaded file temporarily
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+                temp_file.write(file_content)
+                temp_file_path = temp_file.name
+
+            file_extractor = {".pdf": self.parser}
+            documents = SimpleDirectoryReader(input_files=[temp_file_path], file_extractor=file_extractor).load_data()
+
+            return documents
+        except Exception as e:
+            raise Exception(f"Error converting PDF to Markdown: {str(e)}")
+        finally:
+            os.unlink(temp_file_path)

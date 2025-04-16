@@ -59,4 +59,46 @@ class AzureInvoiceParser:
             return extracted_data
             
         except Exception as e:
-            raise Exception(f"Error processing with Azure Document Intelligence: {str(e)}") 
+            raise Exception(f"Error processing with Azure Document Intelligence: {str(e)}")
+
+    def pdf_to_markdown(self, file_content):
+        """
+        Convert PDF to Markdown using Azure Document Intelligence
+        """
+        try:
+            # Analyze the document
+            poller = self.client.begin_analyze_document(
+                "prebuilt-layout",
+                AnalyzeDocumentRequest(bytes_source=file_content),
+                #content_type="application/pdf",
+                #output_format="markdown",
+            )
+            result = poller.result()
+            
+            if not result.documents:
+                return None
+                
+            # Extract text content and convert to markdown
+            markdown_content = ""
+            for page in result.documents:
+                for paragraph in page.paragraphs:
+                    # Add paragraph content
+                    markdown_content += paragraph.content + "\n\n"
+                    
+                    # Add tables if present
+                    for table in paragraph.tables:
+                        # Create markdown table header
+                        header_row = "| " + " | ".join(cell.content for cell in table.header_cells) + " |"
+                        separator = "| " + " | ".join("---" for _ in table.header_cells) + " |"
+                        markdown_content += header_row + "\n" + separator + "\n"
+                        
+                        # Add table rows
+                        for row in table.rows:
+                            row_content = "| " + " | ".join(cell.content for cell in row.cells) + " |"
+                            markdown_content += row_content + "\n"
+                        markdown_content += "\n"
+            
+            return markdown_content
+            
+        except Exception as e:
+            raise Exception(f"Error converting PDF to Markdown: {str(e)}") 

@@ -4,8 +4,9 @@ from typing import List, Optional
 class InvoiceItem(BaseModel):
     description: str = Field(..., description="Description of the item")
     quantity: Optional[float] = Field(None, description="Quantity of the item")
-    unit_price: Optional[float] = Field(None, description="Unit price of the item")
-    amount: Optional[float] = Field(None, description="Total amount for this item")
+    unit_price: Optional[float] = Field(None, description="Unit price of the item, donot convert commas to decimal points")
+    amount: Optional[float] = Field(None, description="Total amount for this item, donot convert commas to decimal points")
+    discount: Optional[float] = Field(None, description="Discount or birthday voucher or saved amount on this item")
 
 class InvoiceData(BaseModel):
     vendor_name: str = Field(..., description="Name of the vendor or company")

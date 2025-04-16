@@ -1,56 +1,71 @@
 # Invoice Parser Comparison
 
-This Streamlit application compares invoice parsing capabilities between Azure Document Intelligence and LlamaParse. It allows users to upload invoices and see how each service extracts and structures the information.
+A Streamlit web application that compares invoice parsing capabilities between Azure Document Intelligence and LlamaParse.
 
 ## Features
 
-- Upload invoices in PDF, PNG, JPG, or JPEG format
-- Side-by-side comparison of parsing results
-- Structured output from Azure Document Intelligence
-- Structured extraction from LlamaParse using the official Cloud API
-- Visual display of uploaded images
-
-## Architecture
-
-This application uses a modular architecture:
-
-- `src/models.py`: Pydantic models for structured data
-- `src/azure_parser.py`: Azure Document Intelligence parser
-- `src/llama_parser.py`: LlamaParse implementation using LlamaIndex Cloud
-- `app.py`: Main Streamlit application
+- **Multi-Parser Support:** Compare results from Azure Document Intelligence and LlamaParse
+- **Structured Data Extraction:** Extract key invoice information (vendor, invoice ID, amounts, line items)
+- **Markdown Conversion:** Convert PDF invoices to readable markdown format
+- **Visual PDF Viewing:** Built-in PDF viewer for uploaded invoices
+- **Performance Metrics:** Track and display parsing time for each engine
 
 ## Setup
 
-1. Clone the repository
+### Prerequisites
+
+- Python 3.8+
+- Azure Document Intelligence API access
+- LlamaParse API access
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/invoice_parser.git
+cd invoice_parser
+```
+
 2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Create a `.env` file with your API credentials:
-   ```
-   AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=your_azure_endpoint
-   AZURE_DOCUMENT_INTELLIGENCE_KEY=your_azure_key
-   LLAMA_CLOUD_API_KEY=your_llama_cloud_api_key
-   ```
+```bash
+pip install -r requirements.txt
+```
+
+3. Create a `.env` file in the project root with the following variables:
+```
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=your_azure_endpoint
+AZURE_DOCUMENT_INTELLIGENCE_KEY=your_azure_key
+LLAMA_CLOUD_API_KEY=your_llama_api_key
+```
 
 ## Usage
 
-1. Run the Streamlit app:
-   ```bash
-   streamlit run app.py
-   ```
-2. Upload an invoice using the file uploader
-3. View the parsed results from both services side by side
+1. Run the application:
+```bash
+streamlit run app.py
+```
 
-## Requirements
+2. Open the provided URL in your browser (typically http://localhost:8501)
 
-- Python 3.8+
-- Azure Document Intelligence service
-- LlamaParse API key from LlamaIndex Cloud
-- Required Python packages (see requirements.txt)
+3. Upload an invoice PDF file using the file uploader
 
-## Notes
+4. View the comparison results:
+   - LlamaParse Markdown output
+   - LlamaParse structured data extraction
+   - (Azure functionality available but commented out in current version)
 
-- Azure Document Intelligence provides structured data extraction using a pre-built invoice model
-- LlamaParse uses LlamaIndex Cloud's document parsing and structured output extraction
-- The app supports PDF
+## Project Structure
+
+- `app.py` - Main Streamlit application
+- `src/` - Source code for parsers
+  - `azure_parser.py` - Azure Document Intelligence integration
+  - `llama_parser.py` - LlamaParse integration
+  - `models.py` - Data models for structured output
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
