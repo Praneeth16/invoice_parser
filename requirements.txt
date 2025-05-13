@@ -4,3 +4,4 @@ azure-ai-documentintelligence
 python-dotenv
 streamlit-pdf-viewer
 llama-cloud-services
+openai>=1.0.0
