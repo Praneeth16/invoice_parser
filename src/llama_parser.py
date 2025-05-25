@@ -31,16 +31,23 @@ class LlamaInvoiceParser:
             config = ExtractConfig(
                 use_reasoning=True,
                 extraction_mode=ExtractMode.MULTIMODAL,
-                system_prompt="Extract the information from invoices uploaded as it is without changing any information and strictly do not change any numbers."
+                system_prompt="Extract the information from invoices uploaded as it is without changing any information and strictly do not change any numbers. Pay special attention to distinguish between merchant/vendor details (the company issuing the invoice) and bill-to/customer details (the company being billed)."
             )
             try:
                 try:
                     agent = self.extractor.get_agent(name='invoice-agent')
-                except:
-                    agent = self.extractor.create_agent(name='invoice-agent', 
-                        data_schema=InvoiceData, 
-                        config=config
-                        )
+                    if agent:
+                        self.extractor.delete_agent(agent.id)
+                except ApiError as e:
+                    if e.status_code == 404:
+                        pass
+                    else:
+                        raise
+                
+                agent = self.extractor.create_agent(name='invoice-agent', 
+                    data_schema=InvoiceData, 
+                    config=config
+                    )
 
                 #extract data from the document
                 extracted_data = agent.extract(
@@ -49,32 +56,53 @@ class LlamaInvoiceParser:
 
                 print(extracted_data)
                 
-                # Convert to dictionary for display
+                # Convert to dictionary for display with new structure
+                merchant_data = extracted_data.get('merchant', {})
+                bill_to_data = extracted_data.get('bill_to', {})
+                
                 structured_data = {
-                    "Vendor Name": extracted_data.get('vendor_name', ''),
-                    "Business Unit": extracted_data.get('business_unit', ''),
-                    "Tax Reg #": extracted_data.get('tax_reg_number', ''),
-                    "Tax Payer ID": extracted_data.get('tax_payer_id', ''),
-                    "Bank Account #": extracted_data.get('bank_account_number', ''),
-                    "IBAN #": extracted_data.get('iban_number', ''),
-                    "Address Line 1": extracted_data.get('address_line_1', ''),
-                    "City": extracted_data.get('city', ''),
-                    "Country": extracted_data.get('country', ''),
-                    "Post Code": extracted_data.get('post_code', ''),
-                    "Email": extracted_data.get('email', ''),
-                    "Invoice ID": extracted_data.get('invoice_id', ''),
-                    "Invoice Date": extracted_data.get('invoice_date', ''),
-                    "Due Date": extracted_data.get('due_date', ''),
-                    "Total Amount": extracted_data.get('total_amount', ''),
-                    "Net Amount": extracted_data.get('net_amount', ''),
-                    "Tax Amount": extracted_data.get('tax_amount', ''),
-                    "Roundoff Amount": extracted_data.get('roundoff_amount', ''),
-                    "Gross Amount": extracted_data.get('gross_amount', ''),
-                    "Currency": extracted_data.get('currency', ''),
-                    "Payment Terms": extracted_data.get('payment_terms', ''),
+                    "Merchant Details": {
+                        "Name": merchant_data.get('name', ''),
+                        "Business Unit": merchant_data.get('business_unit', ''),
+                        "Tax Reg #": merchant_data.get('tax_reg_number', ''),
+                        "Tax Payer ID": merchant_data.get('tax_payer_id', ''),
+                        "Bank Account #": merchant_data.get('bank_account_number', ''),
+                        "IBAN #": merchant_data.get('iban_number', ''),
+                        "Address Line 1": merchant_data.get('address_line_1', ''),
+                        "City": merchant_data.get('city', ''),
+                        "Country": merchant_data.get('country', ''),
+                        "Post Code": merchant_data.get('post_code', ''),
+                        "Email": merchant_data.get('email', ''),
+                    },
+                    "Bill To Details": {
+                        "Name": bill_to_data.get('name', '') if bill_to_data else '',
+                        "Business Unit": bill_to_data.get('business_unit', '') if bill_to_data else '',
+                        "Tax Reg #": bill_to_data.get('tax_reg_number', '') if bill_to_data else '',
+                        "Tax Payer ID": bill_to_data.get('tax_payer_id', '') if bill_to_data else '',
+                        "Address Line 1": bill_to_data.get('address_line_1', '') if bill_to_data else '',
+                        "City": bill_to_data.get('city', '') if bill_to_data else '',
+                        "Country": bill_to_data.get('country', '') if bill_to_data else '',
+                        "Post Code": bill_to_data.get('post_code', '') if bill_to_data else '',
+                        "Email": bill_to_data.get('email', '') if bill_to_data else '',
+                    } if bill_to_data else None,
+                    "Invoice Details": {
+                        "Invoice ID": extracted_data.get('invoice_id', ''),
+                        "Invoice Date": extracted_data.get('invoice_date', ''),
+                        "Due Date": extracted_data.get('due_date', ''),
+                        "Currency": extracted_data.get('currency', ''),
+                        "Payment Terms": extracted_data.get('payment_terms', ''),
+                    },
+                    "Financial Summary": {
+                        "Total Amount": extracted_data.get('total_amount', ''),
+                        "Net Amount": extracted_data.get('net_amount', ''),
+                        "Tax Amount": extracted_data.get('tax_amount', ''),
+                        "Roundoff Amount": extracted_data.get('roundoff_amount', ''),
+                        "Gross Amount": extracted_data.get('gross_amount', ''),
+                    },
                     "Items": [
                         {
                             "Description": item.get('description', ''),
+                            "Business Line": item.get('business_line', ''),
                             "Quantity": item.get('quantity', ''),
                             "Unit Price": item.get('unit_price', ''),
                             "Tax Rate": item.get('tax_rate', ''),

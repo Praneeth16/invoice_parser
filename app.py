@@ -1,45 +1,103 @@
 import io
 import time
+import json
+import pandas as pd
+from datetime import datetime
 
 import streamlit as st
 from streamlit_pdf_viewer import pdf_viewer
 from src import AzureInvoiceParser, LlamaInvoiceParser
 from src.translation import MarkdownTranslator
+from src.cache_manager import (
+    initialize_session_cache, 
+    clear_session_cache,
+    get_file_hash,
+    get_cached_or_compute_markdown,
+    get_cached_or_compute_translation,
+    get_cached_or_compute_extraction
+)
+from src.data_processors import (
+    convert_to_csv_data,
+    create_summary_tables,
+    format_translation_markdown,
+    format_markdown_content,
+    convert_dataframe_to_csv_string
+)
+from src.file_utils import (
+    extract_original_filename,
+    create_filename_with_task,
+    validate_uploaded_file,
+    get_file_info
+)
 
 # Set page config
 st.set_page_config(
-    page_title="Invoice Parser",
+    page_title="🚀 AI-Powered Invoice Parser & Translator",
     page_icon="📄",
     layout="wide"
 )
 
 # Initialize session state for caching
-if 'parsed_results' not in st.session_state:
-    st.session_state.parsed_results = {}
+initialize_session_cache()
 
 # Initialize parsers and translator
 azure_parser = AzureInvoiceParser()
 llama_parser = LlamaInvoiceParser()
 translator = MarkdownTranslator()
 
-st.title("Invoice Parser: LlamaParse")
+st.title("🚀 AI-Powered Invoice Parser & Translator")
 
-# Add some helpful information
-st.markdown("""
+# Add enhanced information
+st.markdown("### 🎯 Transform Your Invoice Processing Workflow")
 
-    ```
-    Power up workflow's with LlamaParse to pull every detail from Invoice PDFs in seconds
-    Translate any non-English invoice into clear, accurate English
-    Transform messy invoice text into clean, structured fields ready for analytics or ERP upload
-    ```
-""") 
+# Create columns for feature highlights
+col1, col2, col3 = st.columns(3, border=True)
+
+with col1:
+    st.markdown("""
+    **⚡ Lightning-Fast Parsing**
+    
+    Extract every detail from invoice PDFs in seconds using advanced LlamaParse technology
+    """)
+
+with col2:
+    st.markdown("""
+    **🌍 Universal Translation**
+    
+    Automatically translate non-English invoices into clear, accurate English
+    """)
+
+with col3:
+    st.markdown("""
+    **📊 Structured Output**
+    
+    Transform messy invoice text into clean, structured data ready for analytics or ERP systems
+    """)
 
 # File uploader
-uploaded_file = st.file_uploader("Upload an invoice", type=["pdf"])
+with st.container(border=True):
+    st.markdown("#### 📄 Upload an Invoice")
+    uploaded_file = st.file_uploader("Invoice PDF", type=["pdf"])
 
 if uploaded_file is not None:
+    # Validate uploaded file
+    is_valid, validation_message = validate_uploaded_file(uploaded_file)
+    if not is_valid:
+        st.error(f"File validation failed: {validation_message}")
+        st.stop()
+    
     # Calculate file hash for caching
     file_content = uploaded_file.read()
+    file_hash = get_file_hash(file_content)
+    
+    # Update session state file hash
+    if st.session_state.current_file_hash != file_hash:
+        st.session_state.current_file_hash = file_hash
+        clear_session_cache()
+    
+    # Get file info
+    file_info = get_file_info(uploaded_file)
+    st.info(f"📊 File: {file_info['filename']} ({file_info['size_mb']:.1f} MB)")
     
     with st.expander("View Invoice"):
         pdf_viewer(uploaded_file.getvalue())
@@ -50,12 +108,13 @@ if uploaded_file is not None:
     with col1:
         st.header("LlamaParse Markdown Parsing")
         try:
-            # Convert PDF to Markdown
-            with st.spinner("Converting PDF to Markdown..."):
-                start_time = time.perf_counter()
-                markdown_data_llama = llama_parser.pdf_to_markdown(file_content)
-                end_time = time.perf_counter()
-                st.info(f"Time taken by LlamaParse Parsing: {int(end_time - start_time)} seconds")
+            # Get markdown data (cached or computed)
+            markdown_data_llama, was_cached = get_cached_or_compute_markdown(
+                file_content, file_hash, llama_parser
+            )
+            
+            if was_cached:
+                st.info("✅ Using cached markdown parsing results")
             
             if markdown_data_llama:
                 # Create tabs for each page
@@ -65,6 +124,22 @@ if uploaded_file is not None:
                 for i, tab in enumerate(tabs):
                     with tab:
                         st.markdown(markdown_data_llama[i].text)
+                
+                # Download section for markdown
+                st.subheader("📥 Download Markdown")
+                
+                # Format markdown content
+                combined_markdown = format_markdown_content(markdown_data_llama)
+                original_name = extract_original_filename(uploaded_file)
+                filename = create_filename_with_task(original_name, "parsing", "md")
+                
+                st.download_button(
+                    label="📄 Download Markdown",
+                    data=combined_markdown,
+                    file_name=filename,
+                    mime="text/markdown",
+                    help="Download parsed markdown content"
+                )
             else:
                 st.warning("No markdown data could be generated from the invoice.")
                 
@@ -75,32 +150,40 @@ if uploaded_file is not None:
         st.header("Markdown Translation to English")
         if markdown_data_llama:
             try:
-                # Process first page for language detection
-                with st.spinner("Detecting language..."):
-                    translation_result = translator.process_markdown(markdown_data_llama[0].text)
+                # Get translation data (cached or computed)
+                translation_data, was_cached = get_cached_or_compute_translation(
+                    markdown_data_llama, file_hash, translator
+                )
                 
-                # Display language and translation info above pages
-                st.info(f"Source Language: {translation_result['source_language']}")
+                if was_cached:
+                    st.info("✅ Using cached translation results")
+                    st.info(f"Source Language: {translation_data['source_language']}")
 
                 # Create tabs for translated content
                 translation_tabs = st.tabs([f"Page {i+1}" for i in range(len(markdown_data_llama))])
                 
-                translation_text = ""
-                # Process and display each page
+                # Display each page
                 for i, tab in enumerate(translation_tabs):
                     with tab:
-                        with st.spinner(f"Processing page {i+1}..."):
-                            start_time = time.perf_counter()
-                            translation_result = translator.process_markdown(markdown_data_llama[i].text)
-                            end_time = time.perf_counter()                                
-                            
-                            # Display translated content
-                            st.markdown(translation_result['translated_text'])
+                        result = translation_data['results'][i]
+                        st.markdown(result['translated_text'])
 
-                            translation_text += (translation_result['translated_text'] + '\n\n')
+                # Download section for translation
+                st.subheader("📥 Download Translation")
+                
+                # Format translation content
+                translation_markdown = format_translation_markdown(translation_data)
+                original_name = extract_original_filename(uploaded_file)
+                filename = create_filename_with_task(original_name, "translation", "md")
+                
+                st.download_button(
+                    label="🌍 Download Translation",
+                    data=translation_markdown,
+                    file_name=filename,
+                    mime="text/markdown",
+                    help="Download translated content as markdown"
+                )
 
-                            if translation_result['translated_text']:
-                                st.success(f"Translation Time: {int(end_time - start_time)} seconds")
             except Exception as e:
                 st.error(f"Translation error: {str(e)}")
         else:
@@ -109,37 +192,72 @@ if uploaded_file is not None:
     with st.container(border=True):
         st.header("LlamaParse Structured Extraction")
         try:
-            # Parse the invoice
-            with st.spinner("Parsing invoice..."):
-                start_time = time.perf_counter()
-                extracted_data_llama = llama_parser.parse_invoice(translation_text)
-                end_time = time.perf_counter()
-                st.info(f"Time taken by LlamaParse Extraction: {int(end_time - start_time)} seconds")
+            if 'translation_data' in locals() and translation_data:
+                # Get extraction data (cached or computed)
+                extracted_data_llama, was_cached = get_cached_or_compute_extraction(
+                    translation_data['combined_text'], file_hash, llama_parser
+                )
                 
-            if extracted_data_llama:
-                st.subheader("Extracted Information")
-                st.json(extracted_data_llama)
+                if was_cached:
+                    st.info("✅ Using cached extraction results")
+                    
+                if extracted_data_llama:
+                    # Create tabs for JSON and Table views
+                    json_tab, table_tab = st.tabs(["📋 JSON View", "📊 Table View"])
+                    
+                    with json_tab:
+                        st.subheader("Extracted Information (JSON)")
+                        st.json(extracted_data_llama)
+                    
+                    with table_tab:
+                        st.subheader("Extracted Information (Tables)")
+                        
+                        # Create summary tables
+                        tables = create_summary_tables(extracted_data_llama)
+                        
+                        # Display each table
+                        for table_name, df in tables.items():
+                            st.write(f"**{table_name}**")
+                            st.dataframe(df, use_container_width=True)
+                            st.write("")  # Add some spacing
+                    
+                    # Download section
+                    st.subheader("📥 Download Options")
+                    col_json, col_csv = st.columns(2)
+                    
+                    with col_json:
+                        # JSON download
+                        json_str = json.dumps(extracted_data_llama, indent=2)
+                        original_name = extract_original_filename(uploaded_file)
+                        filename = create_filename_with_task(original_name, "json", "json")
+                        
+                        st.download_button(
+                            label="📄 Download JSON",
+                            data=json_str,
+                            file_name=filename,
+                            mime="application/json",
+                            help="Download extracted data as JSON file"
+                        )
+                    
+                    with col_csv:
+                        # CSV download
+                        csv_df = convert_to_csv_data(extracted_data_llama)
+                        csv_string = convert_dataframe_to_csv_string(csv_df)
+                        original_name = extract_original_filename(uploaded_file)
+                        filename = create_filename_with_task(original_name, "table", "csv")
+                        
+                        st.download_button(
+                            label="📊 Download CSV",
+                            data=csv_string,
+                            file_name=filename,
+                            mime="text/csv",
+                            help="Download extracted data as CSV file"
+                        )
+                    
+                else:
+                    st.warning("No data could be extracted from the invoice.")
             else:
-                st.warning("No data could be extracted from the invoice.")
+                st.warning("Translation data not available for extraction.")
                 
         except Exception as e:
             st.error(str(e))
-
-    # with col3:
-    #     st.header("Azure Document Intelligence")
-        # try:
-        #     # Parse the invoice
-        #     with st.spinner("Parsing invoice..."):
-        #         start_time = time.perf_counter()
-        #         extracted_data_azure = azure_parser.parse_invoice(file_content)
-        #         end_time = time.perf_counter()
-        #         st.info(f"Time taken by Azure Document Intelligence: {int(end_time - start_time)} seconds")
-            
-        #     if extracted_data_azure:
-        #         st.subheader("Extracted Information")
-        #         st.json(extracted_data_azure)
-        #     else:
-        #         st.warning("No data could be extracted from the invoice.")
-                
-        # except Exception as e:
-        #     st.error(str(e))
