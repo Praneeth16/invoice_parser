@@ -11,11 +11,11 @@ class LlamaInvoiceParser:
         load_dotenv()
         self.api_key = os.getenv("LLAMA_CLOUD_API_KEY")
         self.extractor = LlamaExtract(api_key=self.api_key)
-        self.parser = LlamaParse(api_key=self.api_key, 
-                result_type="markdown", 
+        self.parser = LlamaParse(api_key=self.api_key,
                 auto_mode=True,
                 auto_mode_trigger_on_image_in_page=True,
-                auto_mode_trigger_on_table_in_page=True
+                auto_mode_trigger_on_table_in_page=True,
+                extract_layout=True,
                 )
 
     def parse_invoice(self, file_content):
