@@ -38,7 +38,7 @@ class LlamaInvoiceParser:
                     agent = self.extractor.get_agent(name='invoice-agent')
                     if agent:
                         self.extractor.delete_agent(agent.id)
-                except ApiError as e:
+                except Exception as e:
                     if e.status_code == 404:
                         pass
                     else:
@@ -144,10 +144,13 @@ class LlamaInvoiceParser:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
 
-            file_extractor = {".pdf": self.parser}
-            documents = SimpleDirectoryReader(input_files=[temp_file_path], file_extractor=file_extractor).load_data()
+            results = self.parser.parse(temp_file_path)
 
-            return documents
+            markdown_documents = results.get_markdown_documents(split_by_page=True)
+            parsed_data_with_bounding_boxes = results.model_dump(mode="json")
+
+            return markdown_documents, parsed_data_with_bounding_boxes
+
         except Exception as e:
             raise Exception(f"Error converting PDF to Markdown: {str(e)}")
         finally:

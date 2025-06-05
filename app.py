@@ -21,7 +21,8 @@ from src.data_processors import (
     create_summary_tables,
     format_translation_markdown,
     format_markdown_content,
-    convert_dataframe_to_csv_string
+    convert_dataframe_to_csv_string,
+    create_comprehensive_csv_data
 )
 from src.file_utils import (
     extract_original_filename,
@@ -102,14 +103,20 @@ if uploaded_file is not None:
     with st.expander("View Invoice"):
         pdf_viewer(uploaded_file.getvalue())
 
+    # Initialize variables
+    markdown_data_llama = None
+    bounding_box_data = None
+    translation_data = None
+    extracted_data_llama = None
+
     # Create two columns for results
     col1, col2 = st.columns(2, border=True)
             
     with col1:
         st.header("LlamaParse Markdown Parsing")
         try:
-            # Get markdown data (cached or computed)
-            markdown_data_llama, was_cached = get_cached_or_compute_markdown(
+            # Get markdown data and bounding box data (cached or computed)
+            markdown_data_llama, bounding_box_data, was_cached = get_cached_or_compute_markdown(
                 file_content, file_hash, llama_parser
             )
             
@@ -192,7 +199,7 @@ if uploaded_file is not None:
     with st.container(border=True):
         st.header("LlamaParse Structured Extraction")
         try:
-            if 'translation_data' in locals() and translation_data:
+            if translation_data:
                 # Get extraction data (cached or computed)
                 extracted_data_llama, was_cached = get_cached_or_compute_extraction(
                     translation_data['combined_text'], file_hash, llama_parser
@@ -202,8 +209,8 @@ if uploaded_file is not None:
                     st.info("✅ Using cached extraction results")
                     
                 if extracted_data_llama:
-                    # Create tabs for JSON and Table views
-                    json_tab, table_tab = st.tabs(["📋 JSON View", "📊 Table View"])
+                    # Create tabs for JSON, Table, and Bounding Box views
+                    json_tab, table_tab, bbox_tab = st.tabs(["📋 JSON View", "📊 Table View", "📍 Bounding Boxes"])
                     
                     with json_tab:
                         st.subheader("Extracted Information (JSON)")
@@ -221,9 +228,16 @@ if uploaded_file is not None:
                             st.dataframe(df, use_container_width=True)
                             st.write("")  # Add some spacing
                     
+                    with bbox_tab:
+                        st.subheader("Parsed Data with Bounding Boxes")
+                        if bounding_box_data:
+                            st.json(bounding_box_data)
+                        else:
+                            st.warning("No bounding box data available.")
+                    
                     # Download section
                     st.subheader("📥 Download Options")
-                    col_json, col_csv = st.columns(2)
+                    col_json, col_csv, col_bbox = st.columns(3)
                     
                     with col_json:
                         # JSON download
@@ -240,19 +254,42 @@ if uploaded_file is not None:
                         )
                     
                     with col_csv:
-                        # CSV download
-                        csv_df = convert_to_csv_data(extracted_data_llama)
-                        csv_string = convert_dataframe_to_csv_string(csv_df)
+                        # Comprehensive CSV download with filename, extracted JSON, and bounding JSON
                         original_name = extract_original_filename(uploaded_file)
-                        filename = create_filename_with_task(original_name, "table", "csv")
+                        csv_df = create_comprehensive_csv_data(
+                            original_name, 
+                            extracted_data_llama, 
+                            bounding_box_data,
+                            markdown_data_llama,
+                            translation_data
+                        )
+                        csv_string = convert_dataframe_to_csv_string(csv_df)
+                        filename = create_filename_with_task(original_name, "comprehensive", "csv")
                         
                         st.download_button(
                             label="📊 Download CSV",
                             data=csv_string,
                             file_name=filename,
                             mime="text/csv",
-                            help="Download extracted data as CSV file"
+                            help="Download comprehensive CSV with filename, markdown text, translated text, extracted JSON, and bounding box JSON"
                         )
+                    
+                    with col_bbox:
+                        # Bounding box JSON download
+                        if bounding_box_data:
+                            bbox_json_str = json.dumps(bounding_box_data, indent=2)
+                            original_name = extract_original_filename(uploaded_file)
+                            filename = create_filename_with_task(original_name, "bounding_boxes", "json")
+                            
+                            st.download_button(
+                                label="📍 Download Bounding Boxes",
+                                data=bbox_json_str,
+                                file_name=filename,
+                                mime="application/json",
+                                help="Download bounding box data as JSON file"
+                            )
+                        else:
+                            st.write("No bounding box data available")
                     
                 else:
                     st.warning("No data could be extracted from the invoice.")

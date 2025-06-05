@@ -36,27 +36,32 @@ def get_cached_or_compute_markdown(file_content, file_hash, llama_parser):
     """Get markdown data from cache or compute it"""
     # Check session state first
     if (st.session_state.current_file_hash == file_hash and 
-        st.session_state.markdown_data is not None):
-        return st.session_state.markdown_data, True
+        st.session_state.markdown_data is not None and
+        st.session_state.bounding_box_data is not None):
+        return st.session_state.markdown_data, st.session_state.bounding_box_data, True
     
     # Check disk cache
-    cached_data = load_from_cache(file_hash, "markdown")
-    if cached_data is not None:
-        st.session_state.markdown_data = cached_data
-        return cached_data, True
+    cached_markdown = load_from_cache(file_hash, "markdown")
+    cached_bounding_box = load_from_cache(file_hash, "bounding_box")
+    if cached_markdown is not None and cached_bounding_box is not None:
+        st.session_state.markdown_data = cached_markdown
+        st.session_state.bounding_box_data = cached_bounding_box
+        return cached_markdown, cached_bounding_box, True
     
     # Compute new
     with st.spinner("Converting PDF to Markdown..."):
         start_time = time.perf_counter()
-        markdown_data = llama_parser.pdf_to_markdown(file_content)
+        markdown_data, bounding_box_data = llama_parser.pdf_to_markdown(file_content)
         end_time = time.perf_counter()
         st.info(f"Time taken by LlamaParse Parsing: {int(end_time - start_time)} seconds")
     
     # Save to cache
     save_to_cache(file_hash, "markdown", markdown_data)
+    save_to_cache(file_hash, "bounding_box", bounding_box_data)
     st.session_state.markdown_data = markdown_data
+    st.session_state.bounding_box_data = bounding_box_data
     
-    return markdown_data, False
+    return markdown_data, bounding_box_data, False
 
 def get_cached_or_compute_translation(markdown_data, file_hash, translator):
     """Get translation data from cache or compute it"""
@@ -142,11 +147,14 @@ def initialize_session_cache():
         st.session_state.extracted_data = None
     if 'markdown_data' not in st.session_state:
         st.session_state.markdown_data = None
+    if 'bounding_box_data' not in st.session_state:
+        st.session_state.bounding_box_data = None
     if 'translation_data' not in st.session_state:
         st.session_state.translation_data = None
 
 def clear_session_cache():
     """Clear session cache for new file"""
     st.session_state.markdown_data = None
+    st.session_state.bounding_box_data = None
     st.session_state.translation_data = None
     st.session_state.extracted_data = None 

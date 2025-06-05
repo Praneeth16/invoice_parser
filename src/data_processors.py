@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
 import io
+import json
 
 def convert_to_csv_data(extracted_data):
     """Convert extracted data to CSV-ready format"""
@@ -173,4 +174,27 @@ def sanitize_filename(filename):
     invalid_chars = '<>:"/\\|?*'
     for char in invalid_chars:
         filename = filename.replace(char, '_')
-    return filename 
+    return filename
+
+def create_comprehensive_csv_data(invoice_filename, extracted_data, bounding_box_data, markdown_data=None, translation_data=None):
+    """Create comprehensive CSV with invoice filename, extracted JSON, bounding JSON, markdown text, and translated text"""
+    
+    # Combine markdown text from multiple pages
+    markdown_text = ""
+    if markdown_data:
+        markdown_text = "\n\n".join([doc.text for doc in markdown_data])
+    
+    # Combine translated text from multiple pages
+    translated_text = ""
+    if translation_data and translation_data.get('results'):
+        translated_text = "\n\n".join([result['translated_text'] for result in translation_data['results']])
+    
+    csv_data = [{
+        "Invoice_Filename": invoice_filename,
+        "Markdown_Text": markdown_text,
+        "Translated_Text": translated_text,
+        "Extracted_JSON": json.dumps(extracted_data, indent=2) if extracted_data else "",
+        "Bounding_Box_JSON": json.dumps(bounding_box_data, indent=2) if bounding_box_data else ""
+    }]
+    
+    return pd.DataFrame(csv_data) 
