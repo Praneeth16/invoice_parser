@@ -2,6 +2,6 @@ streamlit
 pydantic
 azure-ai-documentintelligence
 python-dotenv
-streamlit-pdf-viewer
+streamlit-pdf-viewer==0.0.23
 llama-cloud-services
 openai>=1.0.0
