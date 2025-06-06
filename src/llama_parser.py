@@ -36,18 +36,11 @@ class LlamaInvoiceParser:
             try:
                 try:
                     agent = self.extractor.get_agent(name='invoice-agent')
-                    if agent:
-                        self.extractor.delete_agent(agent.id)
                 except Exception as e:
-                    if e.status_code == 404:
-                        pass
-                    else:
-                        raise
-                
-                agent = self.extractor.create_agent(name='invoice-agent', 
-                    data_schema=InvoiceData, 
-                    config=config
-                    )
+                    agent = self.extractor.create_agent(name='invoice-agent', 
+                        data_schema=InvoiceData, 
+                        config=config
+                        )
 
                 #extract data from the document
                 extracted_data = agent.extract(
