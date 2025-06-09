@@ -133,7 +133,7 @@ if uploaded_file is not None:
                         st.markdown(markdown_data_llama[i].text)
                 
                 # Download section for markdown
-                st.subheader("📥 Download Markdown")
+                #st.subheader("📥 Download Markdown")
                 
                 # Format markdown content
                 combined_markdown = format_markdown_content(markdown_data_llama)
@@ -176,7 +176,7 @@ if uploaded_file is not None:
                         st.markdown(result['translated_text'])
 
                 # Download section for translation
-                st.subheader("📥 Download Translation")
+                #st.subheader("📥 Download Translation")
                 
                 # Format translation content
                 translation_markdown = format_translation_markdown(translation_data)
