@@ -54,6 +54,10 @@ class LlamaInvoiceParser:
                 bill_to_data = extracted_data.get('bill_to', {})
                 
                 structured_data = {
+                    "Invoice Classification":{
+                        "Invoice Category": extracted_data.get('invoice_category', ''),
+                        "Invoice Type": extracted_data.get('invoice_type', ''),
+                    },
                     "Merchant Details": {
                         "Name": merchant_data.get('name', ''),
                         "Business Unit": merchant_data.get('business_unit', ''),
@@ -116,7 +120,7 @@ class LlamaInvoiceParser:
                         }
                         for tls in extracted_data.get('tax_line_summaries', [])
                     ] if extracted_data.get('tax_line_summaries') else []
-                }
+                }                
                 
                 return structured_data
                 
