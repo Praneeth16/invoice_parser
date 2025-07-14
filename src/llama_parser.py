@@ -43,7 +43,7 @@ class LlamaInvoiceParser:
                         )
 
                 #extract data from the document
-                extracted_data = agent.extract(
+                structured_output = agent.extract(
                     temp_file_path,
                 ).data
 
@@ -53,10 +53,11 @@ class LlamaInvoiceParser:
                 merchant_data = extracted_data.get('merchant', {})
                 bill_to_data = extracted_data.get('bill_to', {})
                 
-                structured_data = {
-                    "Invoice Classification":{
-                        "Invoice Category": extracted_data.get('invoice_category', ''),
-                        "Invoice Type": extracted_data.get('invoice_type', ''),
+                formatted_output = {
+                    "Invoice Classification": {
+                        "Invoice Category": structured_output.get('invoice_category', ''),
+                        "Invoice Type": structured_output.get('invoice_type', ''),
+                        "Purchase Order Number": structured_output.get('purchase_order_number', ''),
                     },
                     "Merchant Details": {
                         "Name": merchant_data.get('name', ''),
@@ -83,18 +84,21 @@ class LlamaInvoiceParser:
                         "Email": bill_to_data.get('email', '') if bill_to_data else '',
                     } if bill_to_data else None,
                     "Invoice Details": {
-                        "Invoice ID": extracted_data.get('invoice_id', ''),
-                        "Invoice Date": extracted_data.get('invoice_date', ''),
-                        "Due Date": extracted_data.get('due_date', ''),
-                        "Currency": extracted_data.get('currency', ''),
-                        "Payment Terms": extracted_data.get('payment_terms', ''),
+                        "Invoice ID": structured_output.get('invoice_id', ''),
+                        "Invoice Date": structured_output.get('invoice_date', ''),
+                        "Due Date": structured_output.get('due_date', ''),
+                        "Invoice Period Start": structured_output.get('invoice_period_start', ''),
+                        "Invoice Period End": structured_output.get('invoice_period_end', ''),
+                        "Currency": structured_output.get('currency', ''),
+                        "Payment Terms": structured_output.get('payment_terms', ''),
+                        "Cost Center Code": structured_output.get('cost_center_code', ''),
                     },
                     "Financial Summary": {
-                        "Total Amount": extracted_data.get('total_amount', ''),
-                        "Net Amount": extracted_data.get('net_amount', ''),
-                        "Tax Amount": extracted_data.get('tax_amount', ''),
-                        "Roundoff Amount": extracted_data.get('roundoff_amount', ''),
-                        "Gross Amount": extracted_data.get('gross_amount', ''),
+                        "Total Amount": structured_output.get('total_amount', ''),
+                        "Net Amount": structured_output.get('net_amount', ''),
+                        "Tax Amount": structured_output.get('tax_amount', ''),
+                        "Roundoff Amount": structured_output.get('roundoff_amount', ''),
+                        "Gross Amount": structured_output.get('gross_amount', ''),
                     },
                     "Items": [
                         {
@@ -107,9 +111,11 @@ class LlamaInvoiceParser:
                             "Gross Amount": item.get('gross_amount', ''),
                             "Net Amount": item.get('net_amount', ''),
                             "Discount": item.get('discount', ''),
+                            "Cost Center Code": item.get('cost_center_code', ''),
+                            "With Holding Rate": item.get('with_holding_rate', ''),
                             "Description Country Language": item.get('description_country_language', ''),
                         }
-                        for item in extracted_data.get('items', [])
+                        for item in structured_output.get('items', [])
                     ],
                     "Tax Line Summaries": [
                         {
@@ -118,11 +124,11 @@ class LlamaInvoiceParser:
                             "Gross Amount": tls.get('gross_amount', ''),
                             "Net Amount": tls.get('net_amount', ''),
                         }
-                        for tls in extracted_data.get('tax_line_summaries', [])
-                    ] if extracted_data.get('tax_line_summaries') else []
+                        for tls in structured_output.get('tax_line_summaries', [])
+                    ] if structured_output.get('tax_line_summaries') else []
                 }                
                 
-                return structured_data
+                return formatted_output
                 
             finally:
                 # Clean up temporary file
