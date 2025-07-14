@@ -28,26 +28,15 @@ class LlamaInvoiceParser:
                 temp_file.write(file_content.encode())
                 temp_file_path = temp_file.name
 
-            config = ExtractConfig(
-                use_reasoning=True,
-                extraction_mode=ExtractMode.MULTIMODAL,
-                system_prompt="Extract the information from invoices uploaded as it is without changing any information and strictly do not change any numbers. Pay special attention to distinguish between merchant/vendor details (the company issuing the invoice) and bill-to/customer details (the company being billed)."
-            )
             try:
-                try:
-                    agent = self.extractor.get_agent(name='invoice-agent')
-                except Exception as e:
-                    agent = self.extractor.create_agent(name='invoice-agent', 
-                        data_schema=InvoiceData, 
-                        config=config
-                        )
+                agent = self.extractor.get_agent(name='invoice-agent')
 
                 #extract data from the document
                 structured_output = agent.extract(
                     temp_file_path,
                 ).data
 
-                print(structured_output)
+                st.text(structured_output)
                 
                 # Convert to dictionary for display with new structure
                 merchant_data = structured_output.get('merchant', {})
