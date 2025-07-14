@@ -47,7 +47,7 @@ class LlamaInvoiceParser:
                     temp_file_path,
                 ).data
 
-                print(extracted_data)
+                print(structured_output)
                 
                 # Convert to dictionary for display with new structure
                 merchant_data = structured_output.get('merchant', {})
