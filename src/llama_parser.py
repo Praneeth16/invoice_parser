@@ -50,8 +50,8 @@ class LlamaInvoiceParser:
                 print(extracted_data)
                 
                 # Convert to dictionary for display with new structure
-                merchant_data = extracted_data.get('merchant', {})
-                bill_to_data = extracted_data.get('bill_to', {})
+                merchant_data = structured_output.get('merchant', {})
+                bill_to_data = structured_output.get('bill_to', {})
                 
                 formatted_output = {
                     "Invoice Classification": {
