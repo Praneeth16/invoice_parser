@@ -48,6 +48,7 @@ temp/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebook/
 
 # Test coverage
 htmlcov/
@@ -66,4 +67,24 @@ uploads/
 
 # Cache directories
 __pycache__/
-.pytest_cache/ 
+.pytest_cache/
+
+# Project-specific artifacts
+cache/
+*.pkl
+*.xlsx
+*.xls
+data/archive/
+data/archive.zip
+data/*.png
+data/*.jpg
+data/*.jpeg
+data/german/
+data/Germany-Invoices/
+
+# Processed output files
+*-parse.*
+*_extraction.*
+*_translation.*
+*_bounding_box.*
+*_markdown.* 

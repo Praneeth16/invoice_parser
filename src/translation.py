@@ -50,7 +50,7 @@ class MarkdownTranslator:
                 model="mistralai/mistral-medium-3",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Translate this markdown text from {source_language} to English:\n\n{markdown_text}"}
+                    {"role": "user", "content": f"Translate this markdown text from {source_language} to English:\n\n{markdown_text}."}
                 ],
                 #temperature=0.3
             )

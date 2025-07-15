@@ -33,7 +33,7 @@ from src.file_utils import (
 
 # Set page config
 st.set_page_config(
-    page_title="🚀 AI-Powered Invoice Parser & Translator",
+    page_title="AI-Powered Invoice Parser & Translator",
     page_icon="📄",
     layout="wide"
 )
@@ -46,38 +46,38 @@ azure_parser = AzureInvoiceParser()
 llama_parser = LlamaInvoiceParser()
 translator = MarkdownTranslator()
 
-st.title("🚀 AI-Powered Invoice Parser & Translator")
+st.title("AI-Powered Invoice Parser & Translator")
 
 # Add enhanced information
-st.markdown("### 🎯 Transform Your Invoice Processing Workflow")
+st.markdown("### Transform Your Invoice Processing Workflow")
 
 # Create columns for feature highlights
 col1, col2, col3 = st.columns(3, border=True)
 
 with col1:
     st.markdown("""
-    **⚡ Lightning-Fast Parsing**
+    **Lightning-Fast Parsing**
     
-    Extract every detail from invoice PDFs in seconds using advanced LlamaParse technology
+    Extract comprehensive data from invoice PDFs using advanced AI technology
     """)
 
 with col2:
     st.markdown("""
-    **🌍 Universal Translation**
+    **Universal Translation**
     
-    Automatically translate non-English invoices into clear, accurate English
+    Automatically translate non-English invoices into accurate English
     """)
 
 with col3:
     st.markdown("""
-    **📊 Structured Output**
+    **Structured Output**
     
-    Transform messy invoice text into clean, structured data ready for analytics or ERP systems
+    Transform invoice content into clean, structured data ready for business systems
     """)
 
 # File uploader
 with st.container(border=True):
-    st.markdown("#### 📄 Upload an Invoice")
+    st.markdown("#### Upload an Invoice")
     uploaded_file = st.file_uploader("Invoice PDF", type=["pdf"])
 
 if uploaded_file is not None:
@@ -98,7 +98,7 @@ if uploaded_file is not None:
     
     # Get file info
     file_info = get_file_info(uploaded_file)
-    st.info(f"📊 File: {file_info['filename']} ({file_info['size_mb']:.1f} MB)")
+    st.info(f"File: {file_info['filename']} ({file_info['size_mb']:.1f} MB)")
     
     with st.expander("View Invoice"):
         pdf_viewer(uploaded_file.getvalue())
@@ -113,15 +113,12 @@ if uploaded_file is not None:
     col1, col2 = st.columns(2, border=True)
             
     with col1:
-        st.header("LlamaParse Markdown Parsing")
+        st.header("Document Parsing")
         try:
             # Get markdown data and bounding box data (cached or computed)
             markdown_data_llama, bounding_box_data, was_cached = get_cached_or_compute_markdown(
                 file_content, file_hash, llama_parser
             )
-            
-            if was_cached:
-                st.info("✅ Using cached markdown parsing results")
             
             if markdown_data_llama:
                 # Create tabs for each page
@@ -130,10 +127,16 @@ if uploaded_file is not None:
                 # Display each page in its respective tab
                 for i, tab in enumerate(tabs):
                     with tab:
-                        st.markdown(markdown_data_llama[i].text)
-                
-                # Download section for markdown
-                #st.subheader("📥 Download Markdown")
+                        # Create scrollable container for wide content
+                        content = markdown_data_llama[i].text.replace('</div>', '&lt;/div&gt;')
+                        st.markdown(
+                            f"""
+                            <div style="overflow-x: auto; max-width: 100%; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px; background-color: #fafafa;">
+                            {content}
+                            
+                            """,
+                            unsafe_allow_html=True
+                        )
                 
                 # Format markdown content
                 combined_markdown = format_markdown_content(markdown_data_llama)
@@ -141,7 +144,7 @@ if uploaded_file is not None:
                 filename = create_filename_with_task(original_name, "parsing", "md")
                 
                 st.download_button(
-                    label="📄 Download Markdown",
+                    label="Download Markdown",
                     data=combined_markdown,
                     file_name=filename,
                     mime="text/markdown",
@@ -154,7 +157,7 @@ if uploaded_file is not None:
             st.error(str(e))
 
     with col2:
-        st.header("Markdown Translation to English")
+        st.header("Translation to English")
         if markdown_data_llama:
             try:
                 # Get translation data (cached or computed)
@@ -162,8 +165,7 @@ if uploaded_file is not None:
                     markdown_data_llama, file_hash, translator
                 )
                 
-                if was_cached:
-                    st.info("✅ Using cached translation results")
+                if not was_cached:
                     st.info(f"Source Language: {translation_data['source_language']}")
 
                 # Create tabs for translated content
@@ -173,10 +175,22 @@ if uploaded_file is not None:
                 for i, tab in enumerate(translation_tabs):
                     with tab:
                         result = translation_data['results'][i]
-                        st.markdown(result['translated_text'])
-
-                # Download section for translation
-                #st.subheader("📥 Download Translation")
+                        # Create scrollable container for wide content
+                        content = result['translated_text'].replace('</div>', '&lt;/div&gt;')
+                        # Remove markdown code block wrapper if present
+                        if content.startswith('```markdown\n'):
+                            content = content[12:]  # Remove ```markdown\n
+                        if content.endswith('\n```'):
+                            content = content[:-4]  # Remove \n```
+                        elif content.endswith('```'):
+                            content = content[:-3]  # Remove ```
+                        st.markdown(
+                            f"""
+                            <div style="overflow-x: auto; max-width: 100%; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px; background-color: #fafafa;">
+                            {content}
+                            """,
+                            unsafe_allow_html=True
+                        )
                 
                 # Format translation content
                 translation_markdown = format_translation_markdown(translation_data)
@@ -184,7 +198,7 @@ if uploaded_file is not None:
                 filename = create_filename_with_task(original_name, "translation", "md")
                 
                 st.download_button(
-                    label="🌍 Download Translation",
+                    label="Download Translation",
                     data=translation_markdown,
                     file_name=filename,
                     mime="text/markdown",
@@ -197,20 +211,17 @@ if uploaded_file is not None:
             st.warning("No markdown content available for translation.")
 
     with st.container(border=True):
-        st.header("LlamaParse Structured Extraction")
+        st.header("Structured Data Extraction")
         try:
             if translation_data:
                 # Get extraction data (cached or computed)
                 extracted_data_llama, was_cached = get_cached_or_compute_extraction(
                     translation_data['combined_text'], file_hash, llama_parser
                 )
-                
-                if was_cached:
-                    st.info("✅ Using cached extraction results")
                     
                 if extracted_data_llama:
                     # Create tabs for JSON, Table, and Bounding Box views
-                    json_tab, table_tab, bbox_tab = st.tabs(["📋 JSON View", "📊 Table View", "📍 Bounding Boxes"])
+                    json_tab, table_tab, bbox_tab = st.tabs(["JSON View", "Table View", "Bounding Boxes"])
                     
                     with json_tab:
                         st.subheader("Extracted Information (JSON)")
@@ -236,7 +247,7 @@ if uploaded_file is not None:
                             st.warning("No bounding box data available.")
                     
                     # Download section
-                    st.subheader("📥 Download Options")
+                    st.subheader("Download Options")
                     col_json, col_csv, col_bbox = st.columns(3)
                     
                     with col_json:
@@ -246,7 +257,7 @@ if uploaded_file is not None:
                         filename = create_filename_with_task(original_name, "json", "json")
                         
                         st.download_button(
-                            label="📄 Download JSON",
+                            label="Download JSON",
                             data=json_str,
                             file_name=filename,
                             mime="application/json",
@@ -267,11 +278,11 @@ if uploaded_file is not None:
                         filename = create_filename_with_task(original_name, "comprehensive", "csv")
                         
                         st.download_button(
-                            label="📊 Download CSV",
+                            label="Download CSV",
                             data=csv_string,
                             file_name=filename,
                             mime="text/csv",
-                            help="Download comprehensive CSV with filename, markdown text, translated text, extracted JSON, and bounding box JSON"
+                            help="Download comprehensive CSV with all extracted data"
                         )
                     
                     with col_bbox:
@@ -282,7 +293,7 @@ if uploaded_file is not None:
                             filename = create_filename_with_task(original_name, "bounding_boxes", "json")
                             
                             st.download_button(
-                                label="📍 Download Bounding Boxes",
+                                label="Download Bounding Boxes",
                                 data=bbox_json_str,
                                 file_name=filename,
                                 mime="application/json",

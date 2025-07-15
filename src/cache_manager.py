@@ -50,10 +50,7 @@ def get_cached_or_compute_markdown(file_content, file_hash, llama_parser):
     
     # Compute new
     with st.spinner("Converting PDF to Markdown..."):
-        start_time = time.perf_counter()
         markdown_data, bounding_box_data = llama_parser.pdf_to_markdown(file_content)
-        end_time = time.perf_counter()
-        st.info(f"Time taken by LlamaParse Parsing: {int(end_time - start_time)} seconds")
     
     # Save to cache
     save_to_cache(file_hash, "markdown", markdown_data)
@@ -84,20 +81,13 @@ def get_cached_or_compute_translation(markdown_data, file_hash, translator):
     with st.spinner("Detecting language..."):
         first_result = translator.process_markdown(markdown_data[0].text)
     
-    st.info(f"Source Language: {first_result['source_language']}")
-    
     # Process all pages
     for i, doc in enumerate(markdown_data):
         with st.spinner(f"Processing page {i+1}..."):
-            start_time = time.perf_counter()
             translation_result = translator.process_markdown(doc.text)
-            end_time = time.perf_counter()
             
             translation_results.append(translation_result)
             translation_text += (translation_result['translated_text'] + '\n\n')
-            
-            if translation_result['translated_text']:
-                st.success(f"Translation Time: {int(end_time - start_time)} seconds")
     
     translation_data = {
         'results': translation_results,
@@ -125,11 +115,8 @@ def get_cached_or_compute_extraction(translation_text, file_hash, llama_parser):
         return cached_data, True
     
     # Compute new
-    with st.spinner("Parsing invoice..."):
-        start_time = time.perf_counter()
-        extracted_data = llama_parser.parse_invoice(translation_text)
-        end_time = time.perf_counter()
-        st.info(f"Time taken by LlamaParse Extraction: {int(end_time - start_time)} seconds")
+    with st.spinner("Extracting structured data..."):
+        extracted_data = llama_parser.extract_from_text(translation_text)
     
     # Save to cache
     save_to_cache(file_hash, "extraction", extracted_data)
